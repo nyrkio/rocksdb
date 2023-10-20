@@ -18,12 +18,15 @@ import sys
 import requests
 from dateutil import parser
 
+import subprocess
+from collections import defaultdict
+
 logging.basicConfig(level=logging.DEBUG)
 
 
-class Configuration:
-    opensearch_user = os.environ["ES_USER"]
-    opensearch_pass = os.environ["ES_PASS"]
+#class Configuration:
+#    opensearch_user = os.environ["ES_USER"]
+#   opensearch_pass = os.environ["ES_PASS"]
 
 
 class BenchmarkResultException(Exception):
@@ -168,6 +171,86 @@ def load_report_from_tsv(filename: str):
     return report
 
 
+def nyrkio(d):
+    """
+    This is a separate function to reduce chance of merge conflicts as opposed
+    to modifying conform_opensearch().
+    """
+    d['test_name'] = d['test']
+    result = subprocess.run(['git', 'rev-list', '-n1', 'HEAD~1'], stdout=subprocess.PIPE)
+    commit = result.stdout.decode('utf-8').rstrip()
+    result = subprocess.run(['git', 'show', '-s', '--format=%ct', commit], stdout=subprocess.PIPE)
+    new_date = result.stdout.decode('utf-8').rstrip()
+    d['time'] = int(new_date)
+
+    # Move all metrics and attributes into the correct place for nyrkio
+    d['metrics'] = []
+    d['attributes'] = defaultdict(list)
+    for k in [x.replace('.', '_') for x in BenchmarkUtils.expected_keys]:
+        non_metrics = ['test', 'date', 'version', 'job_id']
+        if k in non_metrics:
+            continue
+        val = d[k]
+
+        metric_to_unit = {
+            "ops_sec": "ops_sec",
+            "mb_sec" : "mb_sec",
+            "lsm_sz" : "GB",
+            "blob_sz": "GB",
+            "c_wgb"  : "GB",
+            "w_amp" : "w_amp",
+            "c_mbps": "mbps",
+            "c_wsecs": "secs",
+            "c_csecs": "secs",
+            "b_rgb": "GB",
+            "b_wgb": "GB",
+            "usec_op": "usecs",
+            "p50": "usecs",
+            "p99": "usecs",
+            "p99_9": "usecs",
+            "p99_99": "usecs",
+            "pmax": "usecs",
+            "uptime": "secs",
+            "stall%": "stall%",
+            "Nstall": "Nstall",
+            "u_cpu": "#seconds/1000",
+            "s_cpu": "#seconds/1000",
+            "rss": "GB",
+        }
+        # Some metrics do not have a float value and need converting because Nyrkiö
+        # expects float values
+        gb_metrics = ['lsm_sz', 'blob_sz']
+        if k in gb_metrics:
+            val = float(val.strip("GB"))
+        else:
+            if val.replace('.','_').isnumeric():
+                val = float(val)
+            else:
+                val = 0
+
+        unit = metric_to_unit[k]
+        d['metrics'].append({'name': k, 'value': val, 'unit': unit})
+
+        del d[k]
+
+    d['attributes']['git_commit'].append(commit)
+    d['attributes']['git_repo'].append('https://github.com/facebook/rocksdb')
+    d['attributes']['branch'].append('main')
+
+    # Move attributes to the 'attributes' dict
+    for k in ['version', 'job_id', 'githash', 'test_date']:
+        val = d[k]
+        if val:
+            d['attributes'][k].append(val)
+        del d[k]
+
+
+    del d['test']
+    del d['date']
+
+    return d
+
+
 def push_report_to_opensearch(report, esdocument):
     sanitized = [
         BenchmarkUtils.conform_opensearch(row)
@@ -178,11 +261,12 @@ def push_report_to_opensearch(report, esdocument):
         f"upload {len(sanitized)} sane of {len(report)} benchmarks to opensearch"
     )
     for single_benchmark in sanitized:
+        n = nyrkio(single_benchmark)
         logging.debug(f"upload benchmark: {single_benchmark}")
         response = requests.post(
-            esdocument,
-            json=single_benchmark,
-            auth=(os.environ["ES_USER"], os.environ["ES_PASS"]),
+            esdocument + '/v0/result/rocksdb.' + single_benchmark['test_name'],
+            json=n,
+            headers={'Authorization': os.environ['NYRKIO_TOKEN']}
         )
         logging.debug(
             f"Sent to OpenSearch, status: {response.status_code}, result: {response.text}"

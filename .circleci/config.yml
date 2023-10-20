@@ -210,7 +210,8 @@ commands:
           command: |
             set +e
             set +o pipefail
-            ./build_tools/benchmark_log_tool.py --tsvfile /tmp/benchmark-results/report.tsv --esdocument https://search-rocksdb-bench-k2izhptfeap2hjfxteolsgsynm.us-west-2.es.amazonaws.com/bench_test3_rix/_doc
+            #./build_tools/benchmark_log_tool.py --tsvfile /tmp/benchmark-results/report.tsv --esdocument https://search-rocksdb-bench-k2izhptfeap2hjfxteolsgsynm.us-west-2.es.amazonaws.com/bench_test3_rix/_doc
+            ./build_tools/benchmark_log_tool.py --tsvfile /tmp/benchmark-results/report.tsv --esdocument http://nyrk.io/
             true
 
 executors:
@@ -284,7 +285,7 @@ jobs:
 
   build-linux:
     executor: linux-docker
-    resource_class: 2xlarge
+    resource_class: xlarge
     steps:
       - pre-steps
       - run: make V=1 J=32 -j32 check
@@ -292,7 +293,7 @@ jobs:
 
   build-linux-encrypted_env-no_compression:
     executor: linux-docker
-    resource_class: 2xlarge
+    resource_class: xlarge
     steps:
       - pre-steps
       - run: ENCRYPTED_ENV=1 ROCKSDB_DISABLE_SNAPPY=1 ROCKSDB_DISABLE_ZLIB=1 ROCKSDB_DISABLE_BZIP=1 ROCKSDB_DISABLE_LZ4=1 ROCKSDB_DISABLE_ZSTD=1 make V=1 J=32 -j32 check
@@ -302,7 +303,7 @@ jobs:
 
   build-linux-static_lib-alt_namespace-status_checked:
     executor: linux-docker
-    resource_class: 2xlarge
+    resource_class: xlarge
     steps:
       - pre-steps
       - run: ASSERT_STATUS_CHECKED=1 TEST_UINT128_COMPAT=1 ROCKSDB_MODIFY_NPHASH=1 LIB_MODE=static OPT="-DROCKSDB_NAMESPACE=alternative_rocksdb_ns" make V=1 -j24 check
@@ -310,7 +311,7 @@ jobs:
 
   build-linux-release:
     executor: linux-docker
-    resource_class: 2xlarge
+    resource_class: xlarge
     steps:
       - checkout # check out the code in the project directory
       - run: make V=1 -j32 LIB_MODE=shared release
@@ -353,7 +354,7 @@ jobs:
 
   build-linux-clang10-asan:
     executor: linux-docker
-    resource_class: 2xlarge
+    resource_class: xlarge
     steps:
       - pre-steps
       - run: COMPILE_WITH_ASAN=1 CC=clang-10 CXX=clang++-10 ROCKSDB_DISABLE_ALIGNED_NEW=1 USE_CLANG=1 make V=1 -j32 check # aligned new doesn't work for reason we haven't figured out
@@ -361,7 +362,7 @@ jobs:
 
   build-linux-clang10-mini-tsan:
     executor: linux-docker
-    resource_class: 2xlarge+
+    resource_class: xlarge+
     steps:
       - pre-steps
       - run: COMPILE_WITH_TSAN=1 CC=clang-13 CXX=clang++-13 ROCKSDB_DISABLE_ALIGNED_NEW=1 USE_CLANG=1 make V=1 -j32 check
@@ -369,7 +370,7 @@ jobs:
 
   build-linux-clang10-ubsan:
     executor: linux-docker
-    resource_class: 2xlarge
+    resource_class: xlarge
     steps:
       - pre-steps
       - run: COMPILE_WITH_UBSAN=1 OPT="-fsanitize-blacklist=.circleci/ubsan_suppression_list.txt" CC=clang-10 CXX=clang++-10 ROCKSDB_DISABLE_ALIGNED_NEW=1 USE_CLANG=1 make V=1 -j32 ubsan_check # aligned new doesn't work for reason we haven't figured out
@@ -377,7 +378,7 @@ jobs:
 
   build-linux-valgrind:
     executor: linux-docker
-    resource_class: 2xlarge
+    resource_class: xlarge
     steps:
       - pre-steps
       - run: PORTABLE=1 make V=1 -j32 valgrind_test
@@ -385,7 +386,7 @@ jobs:
 
   build-linux-clang10-clang-analyze:
     executor: linux-docker
-    resource_class: 2xlarge
+    resource_class: xlarge
     steps:
       - pre-steps
       - run: CC=clang-10 CXX=clang++-10 ROCKSDB_DISABLE_ALIGNED_NEW=1 CLANG_ANALYZER="/usr/bin/clang++-10" CLANG_SCAN_BUILD=scan-build-10 USE_CLANG=1 make V=1 -j32 analyze # aligned new doesn't work for reason we haven't figured out. For unknown, reason passing "clang++-10" as CLANG_ANALYZER doesn't work, and we need a full path.
@@ -401,7 +402,7 @@ jobs:
 
   build-linux-runner:
     machine: true
-    resource_class: facebook/rocksdb-benchmark-sys1
+    resource_class: xlarge
     steps:
       - pre-steps
       - run:
@@ -413,7 +414,7 @@ jobs:
 
   build-linux-cmake-with-folly:
     executor: linux-docker
-    resource_class: 2xlarge
+    resource_class: xlarge
     steps:
       - pre-steps
       - setup-folly
@@ -423,7 +424,7 @@ jobs:
 
   build-linux-cmake-with-folly-lite-no-test:
     executor: linux-docker
-    resource_class: 2xlarge
+    resource_class: xlarge
     steps:
       - pre-steps
       - setup-folly
@@ -432,7 +433,7 @@ jobs:
 
   build-linux-cmake-with-benchmark:
     executor: linux-docker
-    resource_class: 2xlarge
+    resource_class: xlarge
     steps:
       - pre-steps
       - run: mkdir build && cd build && cmake -DWITH_GFLAGS=1 -DWITH_BENCHMARK=1 .. && make V=1 -j20 && ctest -j20
@@ -456,7 +457,7 @@ jobs:
 
   build-linux-gcc-7-with-folly:
     executor: linux-docker
-    resource_class: 2xlarge
+    resource_class: xlarge
     steps:
       - pre-steps
       - setup-folly
@@ -466,7 +467,7 @@ jobs:
 
   build-linux-gcc-7-with-folly-lite-no-test:
     executor: linux-docker
-    resource_class: 2xlarge
+    resource_class: xlarge
     steps:
       - pre-steps
       - setup-folly
@@ -475,7 +476,7 @@ jobs:
 
   build-linux-gcc-8-no_test_run:
     executor: linux-docker
-    resource_class: 2xlarge
+    resource_class: xlarge
     steps:
       - pre-steps
       - run: CC=gcc-8 CXX=g++-8 V=1 make -j32 all
@@ -483,7 +484,7 @@ jobs:
 
   build-linux-cmake-with-folly-coroutines:
     executor: linux-docker
-    resource_class: 2xlarge
+    resource_class: xlarge
     environment:
       CC: gcc-10
       CXX: g++-10
@@ -496,7 +497,7 @@ jobs:
 
   build-linux-gcc-10-cxx20-no_test_run:
     executor: linux-docker
-    resource_class: 2xlarge
+    resource_class: xlarge
     steps:
       - pre-steps
       - run: CC=gcc-10 CXX=g++-10 V=1 ROCKSDB_CXX_STANDARD=c++20 make -j32 all
@@ -504,7 +505,7 @@ jobs:
 
   build-linux-gcc-11-no_test_run:
     executor: linux-docker
-    resource_class: 2xlarge
+    resource_class: xlarge
     steps:
       - pre-steps
       - run: LIB_MODE=static CC=gcc-11 CXX=g++-11 V=1 make -j32 all microbench # TODO: LIB_MODE only to work around unresolved linker failures
@@ -512,7 +513,7 @@ jobs:
 
   build-linux-clang-13-no_test_run:
     executor: linux-docker
-    resource_class: 2xlarge
+    resource_class: xlarge
     steps:
       - pre-steps
       - run: CC=clang-13 CXX=clang++-13 USE_CLANG=1 make -j32 all microbench
@@ -521,7 +522,7 @@ jobs:
   # Ensure ASAN+UBSAN with folly, and full testsuite with clang 13
   build-linux-clang-13-asan-ubsan-with-folly:
     executor: linux-docker
-    resource_class: 2xlarge
+    resource_class: xlarge
     steps:
       - pre-steps
       - setup-folly
@@ -532,7 +533,7 @@ jobs:
   # This job is only to make sure the microbench tests are able to run, the benchmark result is not meaningful as the CI host is changing.
   build-linux-run-microbench:
     executor: linux-docker
-    resource_class: 2xlarge
+    resource_class: xlarge
     steps:
       - pre-steps
       - run: DEBUG_LEVEL=0 make -j32 run_microbench
@@ -548,7 +549,7 @@ jobs:
 
   build-linux-crashtest-tiered-storage-bb:
     executor: linux-docker
-    resource_class: 2xlarge
+    resource_class: xlarge
     steps:
       - pre-steps
       - run:
@@ -559,7 +560,7 @@ jobs:
 
   build-linux-crashtest-tiered-storage-wb:
     executor: linux-docker
-    resource_class: 2xlarge
+    resource_class: xlarge
     steps:
       - pre-steps
       - run:
@@ -589,7 +590,7 @@ jobs:
   build-windows-vs2022:
     executor:
       name: win/server-2022
-      size: 2xlarge
+      size: xlarge
     environment:
       THIRDPARTY_HOME: C:/Users/circleci/thirdparty
       CMAKE_HOME: C:/Program Files/CMake
@@ -781,7 +782,7 @@ jobs:
 
   build-linux-non-shm:
     executor: linux-docker
-    resource_class: 2xlarge
+    resource_class: xlarge
     environment:
       TEST_TMPDIR: /tmp/rocksdb_test_tmp
     steps:
@@ -844,7 +845,7 @@ jobs:
 
   build-format-compatible:
     executor: linux-docker
-    resource_class: 2xlarge
+    resource_class: xlarge
     steps:
       - pre-steps
       - run:
@@ -871,7 +872,7 @@ jobs:
 
   benchmark-linux: #use a private Circle CI runner (resource_class) to run the job
     machine: true
-    resource_class: facebook/rocksdb-benchmark-sys1
+    resource_class: nyrkio/rocksdb-benchmark #facebook/rocksdb-benchmark-sys1
     steps:
       - build-for-benchmarks
       - perform-benchmarks
@@ -879,88 +880,6 @@ jobs:
 
 workflows:
   version: 2
-  jobs-linux-run-tests:
-    jobs:
-      - build-linux
-      - build-linux-cmake-with-folly
-      - build-linux-cmake-with-folly-lite-no-test
-      - build-linux-gcc-7-with-folly
-      - build-linux-gcc-7-with-folly-lite-no-test
-      - build-linux-cmake-with-folly-coroutines
-      - build-linux-cmake-with-benchmark
-      - build-linux-encrypted_env-no_compression
-  jobs-linux-run-tests-san:
-    jobs:
-      - build-linux-clang10-asan
-      - build-linux-clang10-ubsan
-      - build-linux-clang10-mini-tsan
-      - build-linux-static_lib-alt_namespace-status_checked
-  jobs-linux-no-test-run:
-    jobs:
-      - build-linux-release
-      - build-linux-release-rtti
-      - build-examples
-      - build-fuzzers
-      - build-linux-clang-no_test_run
-      - build-linux-clang-13-no_test_run
-      - build-linux-gcc-8-no_test_run
-      - build-linux-gcc-10-cxx20-no_test_run
-      - build-linux-gcc-11-no_test_run
-      - build-linux-arm-cmake-no_test_run
-  jobs-linux-other-checks:
-    jobs:
-      - build-linux-clang10-clang-analyze
-      - build-linux-unity-and-headers
-      - build-linux-mini-crashtest
-  jobs-windows:
-    jobs:
-      - build-windows-vs2022-avx2
-      - build-windows-vs2022
-      - build-windows-vs2019
-      - build-cmake-mingw
-  jobs-java:
-    jobs:
-      - build-linux-java
-      - build-linux-java-static
-      - build-macos-java
-      - build-macos-java-static
-      - build-macos-java-static-universal
-      - build-linux-java-pmd
-  jobs-macos:
-    jobs:
-      - build-macos
-      - build-macos-cmake:
-          run_even_tests: true
-      - build-macos-cmake:
-          run_even_tests: false
-  jobs-linux-arm:
-    jobs:
-      - build-linux-arm
-  build-fuzzers:
-    jobs:
-      - build-fuzzers
   benchmark-linux:
-    triggers:
-      - schedule:
-          cron: "0 * * * *"
-          filters:
-            branches:
-              only:
-                - main
     jobs:
       - benchmark-linux
-  nightly:
-    triggers:
-      - schedule:
-          cron: "0 9 * * *"
-          filters:
-            branches:
-              only:
-                - main
-    jobs:
-      - build-format-compatible
-      - build-linux-arm-test-full
-      - build-linux-run-microbench
-      - build-linux-non-shm
-      - build-linux-clang-13-asan-ubsan-with-folly
-      - build-linux-valgrind
